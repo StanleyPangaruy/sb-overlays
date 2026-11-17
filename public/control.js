@@ -142,13 +142,49 @@
     $('fb-fetch').disabled = !configured;
   });
 
+  // Words that end in a period but don't end a sentence (Hon., Brgy., a.m., single initials…).
+  const ABBR = /^(hon|brgy|bgy|sto|sta|mr|mrs|ms|dr|engr|atty|gov|sen|rep|kgd|kgg|gng|bb|kap|konsi|sgt|capt|col|gen|prof|pres|no|nos|st|jr|sr|inc|corp|vs|etc|[a-z])$/i;
+  const DOTTED = /^([a-z]\.)+[a-z]$/i; // a.m, p.m, e.g
+
+  function splitSentences(t) {
+    const out = [];
+    const re = /[.!?]+["')\]]*(?=\s|$)/g;
+    let start = 0;
+    let m;
+    while ((m = re.exec(t))) {
+      const end = m.index + m[0].length;
+      if (m[0][0] === '.') {
+        const word = t.slice(start, m.index).split(/\s+/).pop().replace(/^[^A-Za-z]+/, '');
+        if (ABBR.test(word) || DOTTED.test(word) || /\d$/.test(word)) continue;
+      }
+      if (/^\s*[a-z]/.test(t.slice(end))) continue; // next word lowercase → not a sentence break
+      out.push(t.slice(start, end).trim());
+      start = end;
+    }
+    const rest = t.slice(start).trim();
+    if (rest) out.push(rest);
+    return out;
+  }
+
+  // Always ends on a whole sentence — never cut mid-sentence or add "…".
   function summarize(msg) {
     let t = msg;
     if ($('fb-firstpara').checked) t = t.split(/\n\s*\n/)[0];
     t = t.replace(/\s+/g, ' ').trim();
     const max = Number($('fb-max').value) || 200;
-    if (t.length > max) t = t.slice(0, max).replace(/\s+\S*$/, '') + '…';
-    return t;
+
+    let out = '';
+    for (const s of splitSentences(t)) {
+      const next = out ? `${out} ${s}` : s;
+      if (out && next.length > max) break;
+      out = next;
+      if (out.length >= max) break;
+    }
+
+    // Headlines often have no punctuation: add a period (before any trailing emoji).
+    const [, body, tail] = out.match(/^(.*?)([\s\p{Extended_Pictographic}️‍]*)$/su);
+    if (body && !/[.!?]["')\]]*$/.test(body)) out = body.replace(/[\s,;:|–—-]+$/, '') + '.' + tail;
+    return out;
   }
 
   function renderFb() {
