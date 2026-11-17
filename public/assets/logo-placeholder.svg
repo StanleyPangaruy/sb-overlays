@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <circle cx="100" cy="100" r="98" fill="#f4c20d"/>
+  <circle cx="100" cy="100" r="86" fill="#1b5e20"/>
+  <circle cx="100" cy="100" r="60" fill="#fff"/>
+  <text x="100" y="94" text-anchor="middle" font-family="Arial" font-weight="700" font-size="22" fill="#1b5e20">UPLOAD</text>
+  <text x="100" y="120" text-anchor="middle" font-family="Arial" font-weight="700" font-size="22" fill="#1b5e20">LOGO</text>
+</svg>

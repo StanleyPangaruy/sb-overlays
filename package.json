@@ -1,0 +1,17 @@
+{
+  "name": "sb-overlays",
+  "version": "1.0.0",
+  "description": "OBS browser-source lower third overlay with live control panel",
+  "main": "server.js",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "node --env-file-if-exists=.env server.js"
+  },
+  "engines": {
+    "node": ">=22.9"
+  },
+  "dependencies": {
+    "ws": "^8.18.3"
+  }
+}

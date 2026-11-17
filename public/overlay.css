@@ -1,0 +1,147 @@
+/* Canvas is fixed at 1920x1080 — set the OBS Browser Source to the same size. */
+:root {
+  --bar: #d7141a;
+  --ticker: #0c2d6b;
+  --clock: #1d5fc4;
+  --ticker-h: 34px;
+  --bar-h: 56px;
+  --social-h: 26px;
+  --edge: 12px;
+  --clock-w: 232px;
+}
+
+html, body {
+  margin: 0;
+  width: 1920px;
+  height: 1080px;
+  overflow: hidden;
+  background: transparent;
+  font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+body.preview-bg {
+  background: #2b2f36 repeating-conic-gradient(#3a3f47 0 25%, #2b2f36 0 50%) 0 0 / 40px 40px;
+}
+
+#stage { position: absolute; inset: 0; }
+
+.lt { position: absolute; left: 0; right: 0; bottom: 0; height: 200px; }
+
+/* ---------- Ticker (bottom strip) ---------- */
+.ticker {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: var(--ticker-h);
+  background: linear-gradient(180deg, rgba(255,255,255,.2) 0%, rgba(255,255,255,0) 40%, rgba(0,0,0,.2) 100%), var(--ticker);
+  overflow: hidden;
+  border-top: 1px solid rgba(255,255,255,.18);
+}
+.ticker-track {
+  position: absolute;
+  top: 0; left: 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  will-change: transform;
+  color: #fff;
+  font-size: 19px;
+  font-weight: 400;
+  letter-spacing: .1px;
+}
+.ticker-track .item { padding: 0 22px; }
+.ticker-track .sep { opacity: .7; }
+
+/* ---------- Red title bar ---------- */
+.bar {
+  position: absolute;
+  left: 0;
+  right: calc(var(--edge) + var(--clock-w) - 2px);
+  bottom: var(--ticker-h);
+  height: var(--bar-h);
+  background: linear-gradient(180deg, rgba(255,255,255,.2) 0%, rgba(255,255,255,0) 35%, rgba(0,0,0,.2) 100%), var(--bar);
+  box-shadow: 0 -1px 0 rgba(255,255,255,.25) inset;
+  display: flex;
+  align-items: center;
+}
+.bar-text {
+  padding-left: 182px;
+  color: #fff;
+  font-weight: 700;
+  font-size: 37px;
+  letter-spacing: .3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 1px rgba(0,0,0,.25);
+}
+.bar-text .pipe { padding: 0 12px; font-weight: 400; }
+
+/* ---------- Clock box ---------- */
+.clock {
+  position: absolute;
+  right: var(--edge);
+  bottom: var(--ticker-h);
+  width: var(--clock-w);
+  height: calc(var(--bar-h) + 4px);
+  box-sizing: border-box;
+  background: linear-gradient(180deg, rgba(255,255,255,.2) 0%, rgba(255,255,255,0) 45%, rgba(0,0,0,.2) 100%), var(--clock);
+  border: 2px solid #fff;
+  border-bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 38px;
+  letter-spacing: .5px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Social strip ---------- */
+.social {
+  position: absolute;
+  right: var(--edge);
+  bottom: calc(var(--ticker-h) + var(--bar-h) + 4px);
+  height: var(--social-h);
+  background: #fff;
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  padding: 0 14px 0 74px;
+  font-size: 13px;
+  color: #222;
+  clip-path: polygon(60px 0, 100% 0, 100% 100%, 0 100%);
+}
+.s-item { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.ic { width: 17px; height: 17px; flex: none; }
+
+/* ---------- Logo ---------- */
+.logo {
+  position: absolute;
+  left: 36px;
+  bottom: 4px;
+  width: 132px;
+  height: 132px;
+  border-radius: 50%;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,.35));
+}
+.logo img { width: 100%; height: 100%; object-fit: contain; border-radius: 50%; }
+
+/* ---------- Animations ---------- */
+.lt .bar, .lt .clock, .lt .social, .lt .ticker, .lt .logo {
+  transition: transform .6s cubic-bezier(.2,.8,.2,1), opacity .5s ease;
+}
+.lt .bar     { transition-delay: .1s; }
+.lt .clock   { transition-delay: .25s; }
+.lt .social  { transition-delay: .35s; }
+.lt .logo    { transition-delay: .3s; }
+
+.lt.hidden .bar    { transform: translateX(-105%); opacity: 0; transition-delay: .15s; }
+.lt.hidden .clock  { transform: translateX(120%); opacity: 0; transition-delay: .1s; }
+.lt.hidden .social { transform: translateY(20px); opacity: 0; transition-delay: 0s; }
+.lt.hidden .ticker { transform: translateY(100%); opacity: 0; transition-delay: .2s; }
+.lt.hidden .logo   { transform: scale(0) rotate(-120deg); opacity: 0; transition-delay: 0s; }
+
+.off { display: none !important; }
