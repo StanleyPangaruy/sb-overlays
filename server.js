@@ -182,7 +182,9 @@ const server = http.createServer(async (req, res) => {
         res.writeHead(200, { 'content-type': type, 'cache-control': 'no-cache' });
         return res.end(await fs.readFile(LOGO_FILE));
       }
-      res.writeHead(302, { location: '/assets/logo-placeholder.svg' });
+      // No uploaded logo: use the bundled default, else the placeholder.
+      const fallback = existsSync(path.join(PUBLIC_DIR, 'assets', 'logo.png')) ? '/assets/logo.png' : '/assets/logo-placeholder.svg';
+      res.writeHead(302, { location: fallback });
       return res.end();
     }
 
