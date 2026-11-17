@@ -223,12 +223,21 @@ wss.on('connection', (ws) => {
 });
 
 await loadState();
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`\n  [!] Port ${PORT} is already in use. SB Overlays is probably already running in another window.`);
+    console.error(`      Close that window first, or set a different PORT in .env.\n`);
+    process.exit(1);
+  }
+  throw err;
+});
+wss.on('error', () => {}); // listen errors are handled on `server` above
 server.listen(PORT, '0.0.0.0', () => {
   const lan = Object.values(os.networkInterfaces())
     .flat()
     .filter((i) => i && i.family === 'IPv4' && !i.internal)
     .map((i) => i.address);
-  console.log(`\n  Lower third server running`);
+  console.log(`\n  SB Overlays server running`);
   console.log(`  Overlay (OBS Browser Source, 1920x1080):  http://localhost:${PORT}/overlay`);
   console.log(`  Control panel:                            http://localhost:${PORT}/control`);
   for (const ip of lan) console.log(`  Control from another device:              http://${ip}:${PORT}/control`);

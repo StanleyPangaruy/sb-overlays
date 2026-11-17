@@ -6,7 +6,7 @@
   --ticker-h: 34px;
   --bar-h: 56px;
   --social-h: 26px;
-  --edge: 12px;
+  --edge: 0px;
   --clock-w: 232px;
 }
 
@@ -89,6 +89,7 @@ body.preview-bg {
   background: linear-gradient(180deg, rgba(255,255,255,.2) 0%, rgba(255,255,255,0) 45%, rgba(0,0,0,.2) 100%), var(--clock);
   border: 2px solid #fff;
   border-bottom: 0;
+  border-right: 0;
   display: flex;
   align-items: center;
   justify-content: center;

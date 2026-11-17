@@ -4,6 +4,10 @@ A live lower third (logo, red title bar, social strip, clock and scrolling ticke
 
 ## Run
 
+**Windows:** double-click **`start.bat`**. On the first run it installs dependencies, then starts the server and opens the control panel. Keep the window open while streaming; close it to stop.
+
+Or from a terminal:
+
 ```bash
 npm install
 npm start

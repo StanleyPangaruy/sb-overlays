@@ -18,7 +18,7 @@
   }
   function tickClock() {
     if (!clockFmt) return;
-    $('clock-text').textContent = clockFmt.format(new Date()).replace(/\s?(AM|PM)$/i, (m) => ' ' + m.trim().toLowerCase());
+    $('clock-text').textContent = clockFmt.format(new Date()).replace(/\s?(AM|PM)$/i, (m) => ' ' + m.trim().toUpperCase());
   }
   setInterval(tickClock, 1000);
 
