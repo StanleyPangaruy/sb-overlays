@@ -6,11 +6,32 @@
   let ws = null;
 
   $('overlay-url').textContent = `${location.origin}/overlay`;
+  $('control-url').textContent = `${location.origin}/control`;
 
-  // ---------- Preview scaling ----------
+  // ---------- Collapsible sections (remembered per browser / OBS dock) ----------
+  const OPEN_KEY = 'sbo-open-sections';
+  const DEFAULT_OPEN = ['speakers'];
+  let openSet;
+  try { openSet = new Set(JSON.parse(localStorage.getItem(OPEN_KEY)) || DEFAULT_OPEN); } catch { openSet = new Set(DEFAULT_OPEN); }
+  for (const d of document.querySelectorAll('details[data-key]')) {
+    d.open = openSet.has(d.dataset.key);
+    d.addEventListener('toggle', () => {
+      if (d.open) openSet.add(d.dataset.key); else openSet.delete(d.dataset.key);
+      try { localStorage.setItem(OPEN_KEY, JSON.stringify([...openSet])); } catch { /* storage unavailable */ }
+      if (d.dataset.key === 'preview') syncPreview();
+    });
+  }
+
+  // ---------- Preview (only loaded while its section is open, to save CPU in OBS) ----------
   const frame = $('preview-frame');
+  const previewBox = document.querySelector('details[data-key="preview"]');
   const fit = () => { frame.style.transform = `scale(${$('preview').clientWidth / 1920})`; };
   new ResizeObserver(fit).observe($('preview'));
+  function syncPreview() {
+    if (previewBox.open && !frame.getAttribute('src')) frame.src = '/overlay?preview=1';
+    if (!previewBox.open && frame.getAttribute('src')) frame.removeAttribute('src');
+  }
+  syncPreview();
 
   // ---------- Path helpers ----------
   const get = (obj, p) => p.split('.').reduce((o, k) => (o == null ? o : o[k]), obj);
@@ -50,10 +71,7 @@
   // ---------- Dirty tracking ----------
   function setDirty(v) {
     dirty = v;
-    $('applybar').classList.toggle('dirty', v);
-    $('btn-apply').disabled = !v;
-    $('btn-revert').disabled = !v;
-    $('dirty-msg').textContent = v ? 'You have changes that are NOT on air yet.' : 'All changes are on air.';
+    $('applybar').hidden = !v;
   }
 
   // Checkboxes and colors go on air immediately; text waits for Apply.
@@ -110,6 +128,7 @@
 
   function onState(s) {
     live = s;
+    renderSpeakerPanel(s);
     $('btn-show').classList.toggle('active', s.visible);
     $('btn-hide').classList.toggle('active', !s.visible);
     if (!dirty) {
@@ -250,4 +269,203 @@
   }
   $('fb-add').onclick = () => putInTicker(false);
   $('fb-replace').onclick = () => putInTicker(true);
+  // ---------- Speakers ----------
+  let roster = [];
+  const rosterBody = $('sp-roster');
+  const isTyping = () => /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName);
+  const newId = () => 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+
+  function speakerOnAir(name, title) {
+    send({ speakerLive: { visible: true, name: name.trim(), title: title.trim() } });
+  }
+  function speakerOff() { send({ speakerLive: { visible: false } }); }
+  function saveRoster() { send({ speakerRoster: roster }); }
+
+  function isLive(p) {
+    const l = live?.speakerLive;
+    return Boolean(l?.visible && l.name === p.name.trim() && l.title === p.title.trim());
+  }
+
+  let editing = false;
+
+  function renderRoster() {
+    rosterBody.innerHTML = '';
+    $('sp-table').classList.toggle('editing', editing);
+    roster.forEach((p, i) => (editing ? renderEditRow : renderPickRow)(p, i));
+  }
+
+  const chairTitle = (c) => `Chairman, Committee on ${c}`;
+  const viceTitle = (c) => `Vice-Chairman, Committee on ${c}`;
+  const liveIs = (name, title) => {
+    const l = live?.speakerLive;
+    return Boolean(l?.visible && l.name === (name || '').trim() && l.title === (title || '').trim());
+  };
+  const rowLive = (p) => isLive(p)
+    || (p.committees || []).some((c) => liveIs(p.name, chairTitle(c)))
+    || (p.viceCommittees || []).some((c) => liveIs(p.name, viceTitle(c)));
+  function toggleAir(name, title) {
+    if (liveIs(name, title)) speakerOff();
+    else if (name) speakerOnAir(name, title);
+  }
+  function el(tag, cls, text) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+
+  // Live mode: click the name for their position, or a committee under it for "Chairman, Committee on …".
+  function renderPickRow(p, i) {
+    const tr = el('tr');
+    tr.dataset.id = p.id;
+    tr.classList.toggle('on-air', rowLive(p));
+    const td = el('td');
+    td.colSpan = 4;
+    const card = el('div', 'sp-card');
+
+    const main = el('button', 'pick');
+    main.title = isLive(p) ? 'Take off air' : 'Put on air';
+    const who = el('span', 'pick-who');
+    who.append(el('span', 'pick-name', p.name || '(no name)'), el('span', 'pick-title', p.title));
+    main.append(el('span', 'pick-num', i < 9 ? String(i + 1) : ''), who, el('span', 'pick-chip', isLive(p) ? 'ON AIR' : ''));
+    main.onclick = () => toggleAir(p.name, p.title);
+    card.append(main);
+
+    const chipRow = (label, list, titleFn, cls) => {
+      list = (list || []).filter(Boolean);
+      if (!list.length) return;
+      const chips = el('div', 'cm-chips ' + cls);
+      chips.append(el('span', 'cm-label', label));
+      for (const c of list) {
+        const t = titleFn(c);
+        const on = liveIs(p.name, t);
+        const b = el('button', 'cm-chip' + (on ? ' on' : ''), c);
+        b.title = on ? 'Take off air' : `Show as "${t}"`;
+        b.onclick = () => toggleAir(p.name, t);
+        chips.append(b);
+      }
+      card.append(chips);
+    };
+    chipRow('Chairman:', p.committees, chairTitle, 'chair');
+    chipRow('Vice-Chairman:', p.viceCommittees, viceTitle, 'vice');
+
+    td.append(card);
+    tr.append(td);
+    rosterBody.append(tr);
+  }
+
+  // Edit mode: name, position, chairmanships (one per line), reorder / remove.
+  function renderEditRow(p, i) {
+    const tr = el('tr');
+    tr.dataset.id = p.id;
+    tr.append(el('td', 'num', i < 9 ? String(i + 1) : ''));
+
+    const input = (key, ph) => {
+      const inp = el('input');
+      inp.value = p[key] || '';
+      inp.placeholder = ph;
+      inp.onchange = () => { p[key] = inp.value.trim(); saveRoster(); };
+      return inp;
+    };
+    const tdName = el('td');
+    tdName.append(input('name', 'Hon. Juan Dela Cruz'));
+    const tdTitle = el('td');
+    tdTitle.append(input('title', 'Municipal Councilor'));
+    const listBox = (key, label) => {
+      const lab = el('label', 'cm-edit-label');
+      lab.append(el('small', null, label + ' (one committee per line)'));
+      const ta = el('textarea', 'cm-edit');
+      ta.rows = Math.max(2, (p[key] || []).length);
+      ta.value = (p[key] || []).join('\n');
+      ta.onchange = () => {
+        p[key] = ta.value.split('\n').map((x) => x.trim().replace(/^committee on\s+/i, '')).filter(Boolean);
+        saveRoster();
+      };
+      lab.append(ta);
+      tdTitle.append(lab);
+    };
+    listBox('committees', 'Chairman of');
+    listBox('viceCommittees', 'Vice-Chairman of');
+
+    const acts = el('td', 'acts');
+    const btn = (label, title, fn) => { const b = el('button', 'btn icon', label); b.title = title; b.onclick = fn; acts.append(b); return b; };
+    btn('↑', 'Move up', () => { [roster[i - 1], roster[i]] = [roster[i], roster[i - 1]]; saveRoster(); renderRoster(); }).disabled = i === 0;
+    btn('↓', 'Move down', () => { [roster[i + 1], roster[i]] = [roster[i], roster[i + 1]]; saveRoster(); renderRoster(); }).disabled = i === roster.length - 1;
+    btn('✕', 'Remove from list', () => {
+      if (!confirm(`Remove ${p.name || 'this speaker'} from the list?`)) return;
+      roster.splice(i, 1); saveRoster(); renderRoster();
+    });
+
+    tr.append(tdName, tdTitle, acts);
+    rosterBody.append(tr);
+  }
+
+  $('sp-edit').onclick = () => {
+    editing = !editing;
+    $('sp-edit').textContent = editing ? 'Done editing' : 'Edit list';
+    $('sp-edit').classList.toggle('primary', editing);
+    $('sp-add').hidden = !editing;
+    renderRoster();
+  };
+
+  function renderSpeakerPanel(s) {
+    const l = s.speakerLive || {};
+    const on = Boolean(l.visible && l.name);
+    $('sp-status').classList.toggle('live', on);
+    $('sp-status-text').textContent = on ? `ON AIR: ${l.name}${l.title ? ' — ' + l.title : ''}` : 'No speaker on air';
+    $('sp-off').disabled = !on;
+    $('sp-badge').hidden = !on;
+    if (document.activeElement !== $('sp-autohide')) $('sp-autohide').value = s.speakerAutoHide ?? 0;
+
+    // Don't rebuild the table while someone is typing in it.
+    if (/^(INPUT|TEXTAREA)$/.test(document.activeElement?.tagName) && rosterBody.contains(document.activeElement)) {
+      for (const tr of rosterBody.children) {
+        const p = roster.find((x) => x.id === tr.dataset.id);
+        if (p) tr.classList.toggle('on-air', rowLive(p));
+      }
+      return;
+    }
+    roster = structuredClone(s.speakerRoster || []);
+    renderRoster();
+  }
+
+  $('sp-off').onclick = speakerOff;
+  $('sp-autohide').onchange = (e) => send({ speakerAutoHide: Math.max(0, Number(e.target.value) || 0) });
+  $('sp-add').onclick = () => {
+    roster.push({ id: newId(), name: '', title: '', committees: [], viceCommittees: [] });
+    saveRoster();
+    renderRoster();
+    rosterBody.lastElementChild?.querySelector('input')?.focus();
+  };
+
+  function quickValues() {
+    const name = $('sp-q-name').value.trim();
+    const title = $('sp-q-title').value.trim();
+    $('sp-q-err').hidden = Boolean(name);
+    $('sp-q-err').textContent = name ? '' : 'Enter a name first.';
+    return name ? { name, title } : null;
+  }
+  $('sp-q-name').oninput = () => { $('sp-q-err').hidden = true; };
+  $('sp-q-go').onclick = () => { const q = quickValues(); if (q) speakerOnAir(q.name, q.title); };
+  $('sp-q-save').onclick = () => {
+    const q = quickValues();
+    if (!q) return;
+    roster.push({ id: newId(), ...q, committees: [], viceCommittees: [] });
+    saveRoster();
+    renderRoster();
+    $('sp-q-name').value = '';
+    $('sp-q-title').value = '';
+  };
+  for (const id of ['sp-q-name', 'sp-q-title']) {
+    $(id).addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.ctrlKey) { e.preventDefault(); $('sp-q-go').click(); } });
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (isTyping() || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.key === 'Escape') { e.preventDefault(); speakerOff(); return; }
+    if (/^[1-9]$/.test(e.key)) {
+      const p = roster[Number(e.key) - 1];
+      if (p?.name) { e.preventDefault(); speakerOnAir(p.name, p.title); }
+    }
+  });
 })();

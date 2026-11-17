@@ -16,30 +16,64 @@
 </header>
 
 <main>
-  <section class="preview-wrap">
-    <div class="preview" id="preview"><iframe id="preview-frame" src="/overlay?preview=1" title="Overlay preview"></iframe></div>
-    <p class="hint">OBS: add a <b>Browser Source</b> → URL <code id="overlay-url"></code> → Width <b>1920</b>, Height <b>1080</b>.</p>
-  </section>
-
-  <div class="applybar" id="applybar">
-    <span id="dirty-msg">All changes are on air.</span>
-    <button id="btn-apply" class="btn primary" disabled>Apply changes <kbd>Ctrl+Enter</kbd></button>
-    <button id="btn-revert" class="btn" disabled>Discard</button>
-  </div>
+  <details class="card wide" data-key="preview">
+    <summary><h2>Preview</h2></summary>
+    <div class="card-body">
+      <div class="preview" id="preview"><iframe id="preview-frame" title="Overlay preview"></iframe></div>
+      <p class="hint">OBS: add a <b>Browser Source</b> → URL <code id="overlay-url"></code> → Width <b>1920</b>, Height <b>1080</b>. To dock this panel: <b>Docks → Custom Browser Docks</b> → URL <code id="control-url"></code>.</p>
+    </div>
+  </details>
 
   <div class="grid">
-    <section class="card">
-      <h2>Title bar</h2>
+    <details class="card wide" id="speakers" data-key="speakers">
+      <summary><h2>Speakers</h2> <span class="badge live-badge" id="sp-badge" hidden>ON AIR</span></summary>
+      <div class="card-body">
+      <div class="sp-status" id="sp-status">
+        <span class="sp-dot"></span>
+        <span id="sp-status-text">No speaker on air</span>
+        <div class="spacer"></div>
+        <button id="sp-off" class="btn stop">Take off <kbd>Esc</kbd></button>
+      </div>
+
+      <details class="sub" data-key="quick">
+        <summary>Guest speaker (not in the list)</summary>
+        <div class="row">
+          <label>Name <input id="sp-q-name" placeholder="Hon. Juan Dela Cruz"></label>
+          <label>Position <input id="sp-q-title" placeholder="Punong Barangay, Brgy. Magnolia"></label>
+          <button id="sp-q-go" class="btn go">Put on air</button>
+          <button id="sp-q-save" class="btn">Save to list</button>
+        </div>
+        <p id="sp-q-err" class="err" hidden></p>
+      </details>
+
+      <table class="roster" id="sp-table">
+        <thead><tr><th>#</th><th>Name</th><th>Position</th><th></th></tr></thead>
+        <tbody id="sp-roster"></tbody>
+      </table>
+      <div class="row">
+        <button id="sp-edit" class="btn">Edit list</button>
+        <button id="sp-add" class="btn" hidden>Add speaker</button>
+        <label class="inline">Auto-hide after <input type="number" id="sp-autohide" min="0" max="120" class="narrow"> seconds <small>(0 = stay until you take it off)</small></label>
+      </div>
+      <p class="muted">Click a name to put it on air, or a committee under it to show them as its chairman or vice-chairman. Click again to take it off. Keys <kbd>1</kbd>–<kbd>9</kbd> and <kbd>Esc</kbd> work too while this panel has focus.</p>
+    </div>
+    </details>
+
+    <details class="card" data-key="title">
+      <summary><h2>Title bar</h2></summary>
+      <div class="card-body">
       <label>Live label <input data-k="liveLabel" placeholder="LIVE"></label>
       <label>Title <input data-k="title" placeholder="MAGNOLIA DISTRICT ASSEMBLY"></label>
       <div class="row">
         <label class="chk"><input type="checkbox" data-k="showClock"> Show clock</label>
         <label>Time zone <input data-k="timeZone" placeholder="Asia/Manila"></label>
       </div>
-    </section>
+    </div>
+    </details>
 
-    <section class="card">
-      <h2>Ticker</h2>
+    <details class="card" data-key="ticker">
+      <summary><h2>Ticker</h2></summary>
+      <div class="card-body">
       <label class="chk"><input type="checkbox" data-k="tickerVisible"> Show ticker</label>
       <label>Ticker items <small>(one per line)</small>
         <textarea data-k="tickerItems" rows="6"></textarea>
@@ -48,10 +82,12 @@
         <label>Separator <input data-k="tickerSeparator" class="narrow"></label>
         <label>Speed <input type="range" min="30" max="300" step="5" data-k="tickerSpeed"> <span id="speed-val"></span> px/s</label>
       </div>
-    </section>
+    </div>
+    </details>
 
-    <section class="card wide">
-      <h2>Facebook posts → ticker</h2>
+    <details class="card wide" data-key="facebook">
+      <summary><h2>Facebook posts → ticker</h2></summary>
+      <div class="card-body">
       <p id="fb-status" class="muted"></p>
       <div class="row">
         <button id="fb-fetch" class="btn">Fetch latest posts</button>
@@ -64,19 +100,23 @@
         <button id="fb-replace" class="btn">Replace ticker with selected</button>
         <span class="muted">Then review the ticker items and press Apply.</span>
       </div>
-    </section>
+    </div>
+    </details>
 
-    <section class="card">
-      <h2>Social strip</h2>
+    <details class="card" data-key="social">
+      <summary><h2>Social strip</h2></summary>
+      <div class="card-body">
       <label class="chk"><input type="checkbox" data-k="showSocial"> Show social strip</label>
       <label>Website <input data-k="social.website"></label>
       <label>YouTube <input data-k="social.youtube"></label>
       <label>Facebook <input data-k="social.facebook"></label>
       <label>Instagram <input data-k="social.instagram"></label>
-    </section>
+    </div>
+    </details>
 
-    <section class="card">
-      <h2>Look</h2>
+    <details class="card" data-key="look">
+      <summary><h2>Look</h2></summary>
+      <div class="card-body">
       <div class="row">
         <label>Bar <input type="color" data-k="colors.bar"></label>
         <label>Ticker <input type="color" data-k="colors.ticker"></label>
@@ -86,7 +126,13 @@
         <input type="file" id="logo-file" accept="image/png,image/jpeg,image/webp,image/svg+xml">
       </label>
       <button id="btn-reset" class="btn danger-outline">Reset all to defaults</button>
-    </section>
+    </div>
+    </details>
+  </div>
+  <div class="applybar" id="applybar" hidden>
+    <span id="dirty-msg">Changes not on air yet</span>
+    <button id="btn-revert" class="btn">Discard</button>
+    <button id="btn-apply" class="btn primary">Apply <kbd>Ctrl+Enter</kbd></button>
   </div>
 </main>
 <script src="/control.js"></script>

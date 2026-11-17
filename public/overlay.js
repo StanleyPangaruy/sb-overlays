@@ -2,6 +2,7 @@
   const $ = (id) => document.getElementById(id);
   const params = new URLSearchParams(location.search);
   if (params.has('preview')) document.body.classList.add('preview-bg');
+  if (params.get('only') === 'speaker') document.body.classList.add('only-speaker');
 
   const root = document.documentElement;
   const lt = $('lt');
@@ -105,6 +106,58 @@
     if (img.getAttribute('src') !== src) img.src = src;
 
     lt.classList.toggle('hidden', !s.visible);
+    renderSpeaker(s.speakerLive || {});
+  }
+
+  // ---------- Speaker plate ----------
+  const sp = $('speaker');
+  const spName = $('sp-name');
+  const spTitle = $('sp-title');
+  let spShown = { visible: false, name: '', title: '' };
+  let spSwapTimer;
+
+  // Shrink a line's font until it fits the available width.
+  function fitLine(el, base, min, maxW) {
+    el.style.fontSize = base + 'px';
+    let size = base;
+    while (el.getBoundingClientRect().width > maxW && size > min) {
+      size -= 1;
+      el.style.fontSize = size + 'px';
+    }
+  }
+
+  function setSpeakerText(name, title) {
+    spName.textContent = name;
+    spTitle.textContent = title;
+    // Keep clear of the social strip on the right when it's showing.
+    const social = $('social');
+    const r = social.getBoundingClientRect();
+    const socialLeft = r.width > 0 ? r.left : 1920;
+    const maxW = Math.min(socialLeft, 1920) - 182 - 28;
+    fitLine(spName, 40, 26, maxW);
+    fitLine(spTitle, 24, 16, maxW);
+  }
+
+  function renderSpeaker(live) {
+    const next = { visible: Boolean(live.visible && live.name), name: live.name || '', title: live.title || '' };
+    const changed = next.name !== spShown.name || next.title !== spShown.title;
+    clearTimeout(spSwapTimer);
+
+    if (!next.visible) {
+      sp.classList.remove('show');
+    } else if (!spShown.visible) {
+      setSpeakerText(next.name, next.title);
+      void sp.offsetWidth; // restart transition
+      sp.classList.add('show');
+    } else if (changed) {
+      // Swap: wipe out, change text, wipe in.
+      sp.classList.remove('show');
+      spSwapTimer = setTimeout(() => {
+        setSpeakerText(next.name, next.title);
+        sp.classList.add('show');
+      }, 450);
+    }
+    spShown = next;
   }
 
   // ---------- Live connection ----------

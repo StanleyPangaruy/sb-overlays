@@ -146,3 +146,45 @@ body.preview-bg {
 .lt.hidden .logo   { transform: scale(0) rotate(-120deg); opacity: 0; transition-delay: 0s; }
 
 .off { display: none !important; }
+
+/* ---------- Speaker name plate (sits above the main bar) ---------- */
+.speaker {
+  position: absolute;
+  left: 182px;
+  bottom: calc(var(--ticker-h) + var(--bar-h) + 14px);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  pointer-events: none;
+}
+.sp-name, .sp-title { white-space: nowrap; box-sizing: border-box; }
+.sp-name {
+  background: #fff;
+  color: var(--ticker);
+  font-weight: 700;
+  font-size: 40px;
+  line-height: 1.15;
+  padding: 8px 28px 8px 22px;
+  border-left: 8px solid var(--bar);
+  box-shadow: 0 2px 6px rgba(0,0,0,.25);
+}
+.sp-title {
+  background: linear-gradient(180deg, rgba(255,255,255,.15) 0%, rgba(255,255,255,0) 45%, rgba(0,0,0,.15) 100%), var(--ticker);
+  color: #fff;
+  font-size: 24px;
+  line-height: 1.2;
+  padding: 6px 24px 6px 30px;
+  box-shadow: 0 2px 6px rgba(0,0,0,.25);
+}
+.sp-title:empty { display: none; }
+
+.sp-name, .sp-title {
+  clip-path: inset(0 100% 0 0);
+  opacity: 0;
+  transition: clip-path .45s cubic-bezier(.2,.8,.2,1), opacity .3s ease;
+}
+.speaker.show .sp-name  { clip-path: inset(0 0 0 0); opacity: 1; }
+.speaker.show .sp-title { clip-path: inset(0 0 0 0); opacity: 1; transition-delay: .15s; }
+.speaker:not(.show) .sp-name { transition-delay: .1s; }
+
+body.only-speaker #lt { display: none; }
