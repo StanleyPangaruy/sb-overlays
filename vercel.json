@@ -1,0 +1,12 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "",
+  "buildCommand": "npm run build:static",
+  "outputDirectory": "static",
+  "cleanUrls": true,
+  "headers": [
+    { "source": "/config.json", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] },
+    { "source": "/(overlay.js|overlay.css)", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] }
+  ]
+}

@@ -6,7 +6,9 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "start": "node --env-file-if-exists=.env server.js"
+    "start": "node --env-file-if-exists=.env server.js",
+    "build:static": "node scripts/build-static.js",
+    "preview:static": "node scripts/build-static.js && node scripts/preview-static.js"
   },
   "engines": {
     "node": ">=22.9"

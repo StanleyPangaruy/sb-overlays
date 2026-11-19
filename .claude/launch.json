@@ -1,6 +1,7 @@
 {
   "version": "0.0.1",
   "configurations": [
-    { "name": "overlay-server", "runtimeExecutable": "npm", "runtimeArgs": ["start"], "port": 3000 }
+    { "name": "overlay-server", "runtimeExecutable": "npm", "runtimeArgs": ["start"], "port": 3000 },
+    { "name": "static-preview", "runtimeExecutable": "npm", "runtimeArgs": ["run", "preview:static"], "port": 3001 }
   ]
 }

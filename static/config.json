@@ -1,0 +1,25 @@
+{
+  "liveLabel": "LIVE",
+  "title": "MAGNOLIA DISTRICT ASSEMBLY",
+  "showClock": true,
+  "timeZone": "Asia/Manila",
+  "showSocial": true,
+  "social": {
+    "website": "livelopez.gov.ph",
+    "youtube": "Municipality of Lopez, Quezon",
+    "facebook": "municipalityoflopez.quezon",
+    "instagram": "municipalityoflopezquezon"
+  },
+  "tickerVisible": true,
+  "tickerItems": [
+    "#LIVELopez #MunicipalityofLopez #DistrictAssembly #DistrictMagnolia"
+  ],
+  "tickerSeparator": "•",
+  "tickerSpeed": 110,
+  "colors": {
+    "bar": "#d7141a",
+    "ticker": "#0c2d6b",
+    "clock": "#1d5fc4"
+  },
+  "logo": "assets/logo.png"
+}

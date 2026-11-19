@@ -45,3 +45,39 @@ Requirements (Meta only allows this for Pages you manage):
 4. Copy `.env.example` to `.env`, fill in `FB_PAGE_ID` and `FB_PAGE_TOKEN`, then restart.
 
 Keep `.env` private. It's git-ignored.
+
+## Online version (static, no control panel)
+
+The `static/` folder is a hosted copy of the lower third that runs without the Node server, so OBS can load it from anywhere. It has no control panel, no speaker plates, no logo upload and no Facebook import. Its content comes from **`static/config.json`**.
+
+### Deploy to Vercel (one time)
+
+1. Push this repo to GitHub.
+2. At <https://vercel.com>, **Add New → Project**, import the repo, and deploy. `vercel.json` already sets everything up, so leave the settings as they are.
+3. You get a URL like `https://sb-overlays.vercel.app`.
+
+### Use it in OBS
+
+Browser source → URL `https://<your-project>.vercel.app/`, Width **1920**, Height **1080**.
+
+To animate it in and out, show or hide the source in OBS. Tick "Refresh browser when scene becomes active" if you want the slide-in each time.
+
+### Change the text, colours or ticker
+
+Edit `static/config.json` on GitHub (pencil icon → edit → **Commit changes**). Vercel redeploys in about 30 seconds, and the overlay picks up the change within a minute without refreshing OBS.
+
+To change the logo, replace `static/assets/logo.png`.
+
+One OBS source can override the config with URL parameters. Repeat `ticker` for each ticker line:
+
+```
+https://<your-project>.vercel.app/?title=SPECIAL%20SESSION&live=LIVE&ticker=First%20line&ticker=Second%20line
+```
+
+### Preview locally before pushing
+
+```bash
+npm run preview:static
+```
+
+Then open <http://localhost:3001/?preview> (the `?preview` adds a checkerboard background so you can see the overlay).

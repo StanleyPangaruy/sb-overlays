@@ -4,6 +4,9 @@
   if (params.has('preview')) document.body.classList.add('preview-bg');
   if (params.get('only') === 'speaker') document.body.classList.add('only-speaker');
 
+  // Static mode: published without the Node server (see static/index.html).
+  const STATIC = document.body.dataset.mode === 'static';
+
   const root = document.documentElement;
   const lt = $('lt');
   let state = null;
@@ -70,6 +73,8 @@
 
   function render(s) {
     const prevTz = state?.timeZone;
+    // A ticker built while hidden measures 0px wide: rebuild it once it's shown.
+    if (s.tickerVisible && state && !state.tickerVisible) tickerKey = '';
     state = s;
 
     root.style.setProperty('--bar', s.colors?.bar || '#d7141a');
@@ -102,7 +107,7 @@
     buildTicker(s.tickerItems || [], s.tickerSeparator ?? '•');
 
     const img = $('logo-img');
-    const src = `/logo?v=${s.logoVersion || 0}`;
+    const src = STATIC ? (s.logo || 'assets/logo.png') : `/logo?v=${s.logoVersion || 0}`;
     if (img.getAttribute('src') !== src) img.src = src;
 
     lt.classList.toggle('hidden', !s.visible);
@@ -139,6 +144,7 @@
   }
 
   function renderSpeaker(live) {
+    if (!sp) return; // static page has no speaker plate
     const next = { visible: Boolean(live.visible && live.name), name: live.name || '', title: live.title || '' };
     const changed = next.name !== spShown.name || next.title !== spShown.title;
     clearTimeout(spSwapTimer);
@@ -170,6 +176,34 @@
     ws.onclose = () => setTimeout(connect, 1500);
   }
 
+  // ---------- Static mode: settings come from config.json (+ URL overrides) ----------
+  // URL overrides for a single OBS source: ?title=...&live=...&ticker=line1&ticker=line2
+  function urlOverrides() {
+    const o = {};
+    if (params.has('title')) o.title = params.get('title');
+    if (params.has('live')) o.liveLabel = params.get('live');
+    if (params.has('ticker')) o.tickerItems = params.getAll('ticker');
+    return o;
+  }
+
+  let configText = '';
+  async function loadConfig() {
+    try {
+      const res = await fetch('config.json', { cache: 'no-store' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const text = await res.text();
+      if (text === configText) return; // unchanged since last check
+      configText = text;
+      render({ visible: true, ...JSON.parse(text), ...urlOverrides() });
+    } catch (err) {
+      console.error('Could not load config.json:', err);
+    }
+  }
+
   // Wait for fonts so ticker width measurement is accurate.
-  (document.fonts?.ready || Promise.resolve()).then(connect);
+  (document.fonts?.ready || Promise.resolve()).then(() => {
+    if (!STATIC) return connect();
+    loadConfig();
+    setInterval(loadConfig, 60_000); // pick up a redeploy without refreshing OBS
+  });
 })();
