@@ -43,6 +43,12 @@ const DEFAULT_STATE = {
     sb: { colors: { bar: '#0c2d6b', ticker: '#d7141a', clock: '#ef4146' } },
   },
   logoVersion: 0,
+  // Top-right badge that spins between these logos every `seconds`.
+  cornerLogos: {
+    visible: true,
+    images: ['/assets/corner-live-lopez.png', '/assets/corner-pictu.png'],
+    seconds: 8,
+  },
 
   // Speaker name plate
   speakerRoster: [

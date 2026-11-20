@@ -40,5 +40,13 @@
       }
     }
   },
-  "logo": "assets/logo.png"
+  "logo": "assets/logo.png",
+  "cornerLogos": {
+    "visible": true,
+    "images": [
+      "assets/corner-live-lopez.png",
+      "assets/corner-pictu.png"
+    ],
+    "seconds": 8
+  }
 }

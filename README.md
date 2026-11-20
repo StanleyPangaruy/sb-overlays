@@ -37,7 +37,23 @@ The lower third has two colour versions, picked by the browser source's URL:
 
 Make one browser source per version (for example in an "SB Session" scene) instead of changing colours before each session. Everything else (title, ticker, clock, social, speaker plates) is shared. The SB colours are in `themes.sb.colors` (in `static/config.json` online; in `server.js` defaults or `data/state.json` locally). The **Look** colour pickers in the control panel change the usual version.
 
-## Control panel
+## Corner logo badge (top right)
+
+A small white badge in the top-right corner shows the **LIVE Lopez** logo and the **PICTU** logo in turn: every 8 seconds it spins (turns around its vertical axis) to the other one. It is on in both versions (usual and SB session).
+
+Settings, in `static/config.json` (online) or the `server.js` defaults (local):
+
+```json
+"cornerLogos": {
+  "visible": true,
+  "images": ["assets/corner-live-lopez.png", "assets/corner-pictu.png"],
+  "seconds": 8
+}
+```
+
+- `visible: false` hides it; `seconds` is the time between spins (3 or more).
+- Add or reorder logos in `images`. Use small square PNGs (about 320 x 320 px, transparent or white background); the badge is 132 px on screen. The 6000 px originals (`live_lopez.png`, `pictu_small.png`) are too heavy for OBS and are kept out of Git.
+
 
 - **SHOW / HIDE** animates the lower third in or out immediately.
 - Text edits (title, ticker, social) are staged. Press **Apply changes** (or Ctrl+Enter) to put them on air.

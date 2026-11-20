@@ -28,6 +28,29 @@ body.preview-bg {
 
 .lt { position: absolute; left: 0; right: 0; bottom: 0; height: 200px; }
 
+/* ---------- Corner logo badge (top right): spins between logos ---------- */
+.corner {
+  position: absolute;
+  top: 40px;
+  right: 56px;
+  width: 132px;
+  height: 132px;
+  perspective: 700px;
+  transition: opacity .5s ease;
+}
+.corner.off { opacity: 0; }
+.corner-card {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 7px;
+  border-radius: 22px;
+  background: #fff;
+  box-shadow: 0 4px 14px rgba(0,0,0,.35);
+  backface-visibility: hidden;
+}
+.corner-card img { display: block; width: 100%; height: 100%; object-fit: contain; }
+
 /* ---------- Ticker (bottom strip) ---------- */
 .ticker {
   position: absolute;

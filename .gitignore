@@ -3,3 +3,7 @@ data/
 .env
 static/overlay.js
 static/overlay.css
+
+# Full-size logo originals (17 MB, 3.6 MB); the overlay uses the small corner-*.png copies
+static/assets/live_lopez.png
+static/assets/pictu_small.png

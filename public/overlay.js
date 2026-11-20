@@ -68,6 +68,52 @@
   }
   requestAnimationFrame(frame);
 
+  // ---------- Corner logos (top right) ----------
+  // Shows one logo at a time and spins (turns around its vertical axis) to the next
+  // every few seconds. Settings: cornerLogos { visible, images: [...], seconds }.
+  const corner = $('corner');
+  const cornerCard = $('corner-card');
+  const cornerImg = $('corner-img');
+  let cornerKey = '';
+  let cornerTimer = null;
+  let cornerIndex = 0;
+
+  function spin(from, to, duration, easing) {
+    return cornerCard.animate(
+      [{ transform: `rotateY(${from}deg)` }, { transform: `rotateY(${to}deg)` }],
+      { duration, easing, fill: 'forwards' },
+    ).finished;
+  }
+
+  async function spinTo(src) {
+    await spin(0, 90, 420, 'cubic-bezier(.5,0,.75,0)');   // turn edge-on
+    cornerImg.src = src;                                  // swap while it is invisible
+    await spin(-90, 0, 560, 'cubic-bezier(.2,.8,.2,1)');  // turn back to face the camera
+  }
+
+  function setupCorner(c) {
+    const images = (c?.images || []).filter(Boolean);
+    const show = Boolean(c?.visible) && images.length > 0;
+    const seconds = Math.max(3, Number(c?.seconds) || 8);
+    const key = JSON.stringify([show, images, seconds]);
+    if (key === cornerKey) return;
+    cornerKey = key;
+
+    clearInterval(cornerTimer);
+    corner.classList.toggle('off', !show);
+    if (!show) return;
+    images.forEach((src) => { new Image().src = src; }); // preload, so a spin never shows a blank card
+    cornerIndex = 0;
+    cornerImg.src = images[0];
+    spin(-90, 0, 700, 'cubic-bezier(.2,.8,.2,1)');      // spin in
+    if (images.length > 1) {
+      cornerTimer = setInterval(() => {
+        cornerIndex = (cornerIndex + 1) % images.length;
+        spinTo(images[cornerIndex]);
+      }, seconds * 1000);
+    }
+  }
+
   // ---------- Versions ----------
   // ?theme=sb picks the Sangguniang Bayan session version: its settings from "themes.sb"
   // (in config.json / the server state) go over the normal ones. Without it: the normal look.
@@ -122,6 +168,7 @@
     if (img.getAttribute('src') !== src) img.src = src;
 
     lt.classList.toggle('hidden', !s.visible);
+    setupCorner(s.cornerLogos);
     renderSpeaker(s.speakerLive || {});
   }
 
