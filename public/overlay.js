@@ -68,10 +68,21 @@
   }
   requestAnimationFrame(frame);
 
+  // ---------- Versions ----------
+  // ?theme=sb picks the Sangguniang Bayan session version: its settings from "themes.sb"
+  // (in config.json / the server state) go over the normal ones. Without it: the normal look.
+  const THEME = params.get('theme') || '';
+  function withTheme(s) {
+    const t = THEME && s.themes?.[THEME];
+    if (!t) return s;
+    return { ...s, ...t, colors: { ...s.colors, ...t.colors } };
+  }
+
   // ---------- Render ----------
   function setText(el, text) { if (el.textContent !== text) el.textContent = text; }
 
   function render(s) {
+    s = withTheme(s);
     const prevTz = state?.timeZone;
     // A ticker built while hidden measures 0px wide: rebuild it once it's shown.
     if (s.tickerVisible && state && !state.tickerVisible) tickerKey = '';

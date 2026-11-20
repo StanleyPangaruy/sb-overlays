@@ -16,6 +16,7 @@ npm start
 | Page | URL |
 |---|---|
 | Overlay (for OBS) | `http://localhost:3000/overlay` |
+| Overlay, SB session version | `http://localhost:3000/overlay?theme=sb` |
 | Control panel | `http://localhost:3000/control` (or `http://<this-PC-IP>:3000/control` from another device on the LAN) |
 
 ## OBS setup
@@ -24,6 +25,17 @@ npm start
 2. URL: `http://localhost:3000/overlay`. Width **1920**, Height **1080**.
 3. Untick "Shutdown source when not visible" so the ticker keeps its position.
 4. Leave Custom CSS empty (the page is already transparent).
+
+## Two versions: livestreams and SB sessions
+
+The lower third has two colour versions, picked by the browser source's URL:
+
+| Version | Look | URL ends with |
+|---|---|---|
+| Usual livestreams | red title bar, blue ticker | `/overlay` (or `/` online) |
+| Sangguniang Bayan sessions | blue title bar, red ticker (red and blue swapped) | `/overlay?theme=sb` (or `/?theme=sb` online) |
+
+Make one browser source per version (for example in an "SB Session" scene) instead of changing colours before each session. Everything else (title, ticker, clock, social, speaker plates) is shared. The SB colours are in `themes.sb.colors` (in `static/config.json` online; in `server.js` defaults or `data/state.json` locally). The **Look** colour pickers in the control panel change the usual version.
 
 ## Control panel
 

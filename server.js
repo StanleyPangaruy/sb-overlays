@@ -37,6 +37,11 @@ const DEFAULT_STATE = {
     ticker: '#0c2d6b',
     clock: '#1d5fc4',
   },
+  // Other versions of the lower third, picked with ?theme=<name> on the overlay URL.
+  // sb = Sangguniang Bayan sessions: red and blue swapped.
+  themes: {
+    sb: { colors: { bar: '#0c2d6b', ticker: '#d7141a', clock: '#ef4146' } },
+  },
   logoVersion: 0,
 
   // Speaker name plate
