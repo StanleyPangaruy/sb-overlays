@@ -48,8 +48,18 @@ body.preview-bg {
   background: #fff;
   box-shadow: 0 4px 14px rgba(0,0,0,.35);
   backface-visibility: hidden;
+  position: relative;
 }
-.corner-card img { display: block; width: 100%; height: 100%; object-fit: contain; }
+/* All logos sit stacked and stay rendered; only the "on" one is visible, so a swap is instant. */
+.corner-card img {
+  position: absolute;
+  inset: 7px;
+  width: calc(100% - 14px);
+  height: calc(100% - 14px);
+  object-fit: contain;
+  opacity: 0;
+}
+.corner-card img.on { opacity: 1; }
 
 /* ---------- Ticker (bottom strip) ---------- */
 .ticker {

@@ -71,12 +71,16 @@
   // ---------- Corner logos (top right) ----------
   // Shows one logo at a time and spins (turns around its vertical axis) to the next
   // every few seconds. Settings: cornerLogos { visible, images: [...], seconds }.
+  // Every logo is an <img> in the card, loaded and decoded before the first spin;
+  // a spin only changes which one is visible, so the new logo is there at once.
+  // (Changing an <img>'s src mid-spin made OBS show the old logo until the new
+  // file had loaded again.)
   const corner = $('corner');
   const cornerCard = $('corner-card');
-  const cornerImg = $('corner-img');
   let cornerKey = '';
   let cornerTimer = null;
   let cornerIndex = 0;
+  let cornerImgs = [];
 
   function spin(from, to, duration, easing) {
     return cornerCard.animate(
@@ -85,13 +89,26 @@
     ).finished;
   }
 
-  async function spinTo(src) {
-    await spin(0, 90, 420, 'cubic-bezier(.5,0,.75,0)');   // turn edge-on
-    cornerImg.src = src;                                  // swap while it is invisible
-    await spin(-90, 0, 560, 'cubic-bezier(.2,.8,.2,1)');  // turn back to face the camera
+  function showLogo(i) {
+    cornerImgs.forEach((im, n) => im.classList.toggle('on', n === i));
   }
 
-  function setupCorner(c) {
+  // One spin at a time: if the page stops drawing (OBS throttles a source that is not
+  // on screen), skipped spins must not pile up and then all play at once.
+  let spinning = false;
+  async function spinTo(i) {
+    if (spinning) return;
+    spinning = true;
+    try {
+      await spin(0, 90, 420, 'cubic-bezier(.5,0,.75,0)');   // turn edge-on
+      showLogo(i);                                          // swap while it is invisible
+      await spin(-90, 0, 560, 'cubic-bezier(.2,.8,.2,1)');  // turn back to face the camera
+    } finally {
+      spinning = false;
+    }
+  }
+
+  async function setupCorner(c) {
     const images = (c?.images || []).filter(Boolean);
     const show = Boolean(c?.visible) && images.length > 0;
     const seconds = Math.max(3, Number(c?.seconds) || 8);
@@ -100,16 +117,28 @@
     cornerKey = key;
 
     clearInterval(cornerTimer);
-    corner.classList.toggle('off', !show);
-    if (!show) return;
-    images.forEach((src) => { new Image().src = src; }); // preload, so a spin never shows a blank card
+    if (!show) { corner.classList.add('off'); return; }
+
+    const imgs = images.map((src) => {
+      const im = new Image();
+      im.alt = '';
+      im.src = src;
+      return im;
+    });
+    await Promise.all(imgs.map((im) => im.decode().catch(() => {}))); // a broken file is just skipped
+    if (key !== cornerKey) return; // settings changed while loading
+
+    cornerImgs = imgs;
+    cornerCard.replaceChildren(...imgs);
     cornerIndex = 0;
-    cornerImg.src = images[0];
+    showLogo(0);
+    corner.classList.remove('off');
     spin(-90, 0, 700, 'cubic-bezier(.2,.8,.2,1)');      // spin in
-    if (images.length > 1) {
+    if (imgs.length > 1) {
       cornerTimer = setInterval(() => {
-        cornerIndex = (cornerIndex + 1) % images.length;
-        spinTo(images[cornerIndex]);
+        if (spinning) return;
+        cornerIndex = (cornerIndex + 1) % imgs.length;
+        spinTo(cornerIndex);
       }, seconds * 1000);
     }
   }
