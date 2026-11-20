@@ -220,4 +220,12 @@ body.preview-bg {
 .speaker.show .sp-title { clip-path: inset(0 0 0 0); opacity: 1; transition-delay: .15s; }
 .speaker:not(.show) .sp-name { transition-delay: .1s; }
 
-body.only-speaker #lt { display: none; }
+/* ?only=… shows one part, so each can be its own OBS source:
+   lowerthird = the lower third (and speaker plate), no corner badge
+   corner     = just the top-right logo badge
+   speaker    = just the speaker name plate */
+body[data-only="lowerthird"] #corner { display: none; }
+body[data-only="corner"] #lt,
+body[data-only="corner"] #speaker { display: none; }
+body[data-only="speaker"] #lt,
+body[data-only="speaker"] #corner { display: none; }

@@ -37,6 +37,19 @@ The lower third has two colour versions, picked by the browser source's URL:
 
 Make one browser source per version (for example in an "SB Session" scene) instead of changing colours before each session. Everything else (title, ticker, clock, social, speaker plates) is shared. The SB colours are in `themes.sb.colors` (in `static/config.json` online; in `server.js` defaults or `data/state.json` locally). The **Look** colour pickers in the control panel change the usual version.
 
+## Separate links for each part
+
+Add `?only=` to the URL to show just one part, so each part can be its own OBS browser source (show, hide or move them separately). All are 1920 x 1080.
+
+| Part | Online (Vercel) | Local |
+|---|---|---|
+| Everything (as before) | `/` | `/overlay` |
+| Lower third only (title bar, ticker, clock, socials, seal) | `/?only=lowerthird` | `/overlay?only=lowerthird` |
+| Top-right logo badge only | `/?only=corner` | `/overlay?only=corner` |
+| Speaker name plate only | — | `/overlay?only=speaker` |
+
+Combine with the SB version using `&`, e.g. `/?only=lowerthird&theme=sb`. Use either the separate links or the everything link in a scene, not both, or the part shows twice.
+
 ## Corner logo badge (top right)
 
 A small white badge in the top-right corner shows the **LIVE Lopez** logo and the **PICTU** logo in turn: every 8 seconds it spins (turns around its vertical axis) to the other one. It is on in both versions (usual and SB session).

@@ -2,7 +2,8 @@
   const $ = (id) => document.getElementById(id);
   const params = new URLSearchParams(location.search);
   if (params.has('preview')) document.body.classList.add('preview-bg');
-  if (params.get('only') === 'speaker') document.body.classList.add('only-speaker');
+  // ?only=lowerthird | corner | speaker: one part per OBS source (see README).
+  if (params.has('only')) document.body.dataset.only = params.get('only');
 
   // Static mode: published without the Node server (see static/index.html).
   const STATIC = document.body.dataset.mode === 'static';
