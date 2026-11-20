@@ -31,7 +31,7 @@ const DEFAULT_STATE = {
     '#LIVELopez #MunicipalityofLopez #DistrictAssembly #DistrictMagnolia',
   ],
   tickerSeparator: '•',
-  tickerSpeed: 110,
+  tickerSpeed: 80,
   colors: {
     bar: '#d7141a',
     ticker: '#0c2d6b',
