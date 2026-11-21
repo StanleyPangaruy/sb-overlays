@@ -28,14 +28,20 @@ npm start
 
 ## Two versions: livestreams and SB sessions
 
-The lower third has two colour versions, picked by the browser source's URL:
+The lower third has two versions, picked by the browser source's URL. Each has **its own settings** (title, ticker, colours, clock, social strip, show/hide, which speaker is on air):
 
-| Version | Look | URL ends with |
-|---|---|---|
-| Usual livestreams | red title bar, blue ticker | `/overlay` (or `/` online) |
-| Sangguniang Bayan sessions | blue title bar, red ticker (red and blue swapped) | `/overlay?theme=sb` (or `/?theme=sb` online) |
+| Version | Look | URL ends with | Settings file (local) | Settings file (online) |
+|---|---|---|---|---|
+| Usual livestreams | red title bar, blue ticker | `/overlay` (or `/` online) | `data/state.json` | `static/config.json` |
+| Sangguniang Bayan sessions | blue title bar, red ticker | `/overlay?theme=sb` (or `/?theme=sb` online) | `data/state-sb.json` | `static/config-sb.json` |
 
-Make one browser source per version (for example in an "SB Session" scene) instead of changing colours before each session. Everything else (title, ticker, clock, social, speaker plates) is shared. The SB colours are in `themes.sb.colors` (in `static/config.json` online; in `server.js` defaults or `data/state.json` locally). The **Look** colour pickers in the control panel change the usual version.
+Make one browser source per version (for example in an "SB Session" scene).
+
+**Control panel:** the **Usual | SB** switch at the top picks which version you're editing; SHOW/HIDE, Apply and the speaker buttons act on that version. A green dot on a switch button means that version is showing. Open `/control?style=sb` to start on SB, handy as a second OBS dock.
+
+**Shared by both:** the speaker list (with committee roles), the logo and the corner badge.
+
+**Online:** `config-sb.json` only needs what differs from `config.json`; anything it leaves out (for example the ticker) comes from `config.json`. Add `"tickerItems": [...]` to it to give SB its own ticker.
 
 ## Separate links for each part
 
@@ -105,7 +111,7 @@ To animate it in and out, show or hide the source in OBS. Tick "Refresh browser 
 
 ### Change the text, colours or ticker
 
-Edit `static/config.json` on GitHub (pencil icon → edit → **Commit changes**). Vercel redeploys in about 30 seconds, and the overlay picks up the change within a minute without refreshing OBS.
+Edit `static/config.json` (usual) or `static/config-sb.json` (SB session) on GitHub (pencil icon → edit → **Commit changes**). Vercel redeploys in about 30 seconds, and the overlay picks up the change within a minute without refreshing OBS.
 
 To change the logo, replace `static/assets/logo.png`.
 

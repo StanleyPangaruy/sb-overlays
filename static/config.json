@@ -32,15 +32,6 @@
     "ticker": "#0c2d6b",
     "clock": "#1d5fc4"
   },
-  "themes": {
-    "sb": {
-      "colors": {
-        "bar": "#0c2d6b",
-        "ticker": "#d7141a",
-        "clock": "#ef4146"
-      }
-    }
-  },
   "logo": "assets/logo.png",
   "cornerLogos": {
     "visible": true,

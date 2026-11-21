@@ -227,3 +227,30 @@ textarea.cm-edit { font-size: 12px; }
 @media (max-width: 520px) {
   .cm-chips { padding-left: 10px; }
 }
+
+/* ---------- Usual / SB style switch ---------- */
+.style-switch { display: inline-flex; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; }
+.style-switch button {
+  font: inherit; font-size: 13px; font-weight: 700; letter-spacing: .03em;
+  padding: 6px 12px; border: 0; cursor: pointer;
+  background: #1b2027; color: var(--muted);
+}
+.style-switch button + button { border-left: 1px solid var(--line); }
+.style-switch button:hover { color: var(--text); }
+.style-switch button.active { background: var(--style-accent, #d7141a); color: #fff; }
+/* small dot = that style's lower third is showing */
+.style-switch button.on::after { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #3ddc84; margin-left: 6px; vertical-align: middle; }
+body[data-style="usual"] { --style-accent: #d7141a; }
+body[data-style="sb"] { --style-accent: #1d5fc4; }
+header { border-bottom: 3px solid var(--style-accent, var(--line)); }
+@media (max-width: 520px) {
+  .style-switch button { padding: 5px 9px; font-size: 12px; }
+}
+@media (max-width: 520px) {
+  /* keep the dock header on one line: connection becomes a dot */
+  .conn { font-size: 0; width: 10px; height: 10px; padding: 0; flex: none; }
+  header h1 { white-space: nowrap; }
+  header .spacer { display: none; }
+  #btn-show { margin-left: auto; }
+  .btn.big { padding: 7px 11px; }
+}

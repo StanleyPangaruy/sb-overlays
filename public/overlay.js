@@ -144,21 +144,16 @@
     }
   }
 
-  // ---------- Versions ----------
-  // ?theme=sb picks the Sangguniang Bayan session version: its settings from "themes.sb"
-  // (in config.json / the server state) go over the normal ones. Without it: the normal look.
-  const THEME = params.get('theme') || '';
-  function withTheme(s) {
-    const t = THEME && s.themes?.[THEME];
-    if (!t) return s;
-    return { ...s, ...t, colors: { ...s.colors, ...t.colors } };
-  }
+  // ---------- Styles ----------
+  // ?theme=sb shows the Sangguniang Bayan session style, which has its own settings
+  // (server: data/state-sb.json, online: config-sb.json). Without it: the usual style.
+  const THEME = /^[a-z0-9-]+$/i.test(params.get('theme') || '') ? params.get('theme').toLowerCase() : '';
+  const STYLE = THEME || 'usual';
 
   // ---------- Render ----------
   function setText(el, text) { if (el.textContent !== text) el.textContent = text; }
 
   function render(s) {
-    s = withTheme(s);
     const prevTz = state?.timeZone;
     // A ticker built while hidden measures 0px wide: rebuild it once it's shown.
     if (s.tickerVisible && state && !state.tickerVisible) tickerKey = '';
@@ -256,10 +251,10 @@
 
   // ---------- Live connection ----------
   function connect() {
-    const ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`);
+    const ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws?style=${STYLE}`);
     ws.onmessage = (e) => {
       const msg = JSON.parse(e.data);
-      if (msg.type === 'state') render(msg.state);
+      if (msg.type === 'state' && (msg.style || 'usual') === STYLE) render(msg.state);
     };
     ws.onclose = () => setTimeout(connect, 1500);
   }
@@ -274,17 +269,35 @@
     return o;
   }
 
+  // Settings on top of `base`: nested objects (colors, social…) merge, everything else replaces.
+  function mergeConfig(base, over) {
+    const out = { ...base };
+    for (const [k, v] of Object.entries(over || {})) {
+      out[k] = v && typeof v === 'object' && !Array.isArray(v) && base[k] && typeof base[k] === 'object'
+        ? mergeConfig(base[k], v) : v;
+    }
+    return out;
+  }
+
+  async function fetchText(file) {
+    const res = await fetch(file, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`${file}: HTTP ${res.status}`);
+    return res.text();
+  }
+
+  // Usual style: config.json. Another style (?theme=sb): config-sb.json on top of config.json.
   let configText = '';
   async function loadConfig() {
     try {
-      const res = await fetch('config.json', { cache: 'no-store' });
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      const text = await res.text();
-      if (text === configText) return; // unchanged since last check
-      configText = text;
-      render({ visible: true, ...JSON.parse(text), ...urlOverrides() });
+      const texts = [await fetchText('config.json')];
+      if (THEME) texts.push(await fetchText(`config-${THEME}.json`));
+      const joined = texts.join('\u0000');
+      if (joined === configText) return; // unchanged since last check
+      configText = joined;
+      const [base, style] = texts.map((t) => JSON.parse(t));
+      render({ visible: true, ...mergeConfig(base, style), ...urlOverrides() });
     } catch (err) {
-      console.error('Could not load config.json:', err);
+      console.error('Could not load settings:', err);
     }
   }
 

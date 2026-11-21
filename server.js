@@ -9,7 +9,13 @@ import { WebSocketServer } from 'ws';
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.join(ROOT, 'public');
 const DATA_DIR = path.join(ROOT, 'data');
-const STATE_FILE = path.join(DATA_DIR, 'state.json');
+// Each style of the lower third keeps its own settings file.
+// usual = everyday events (/overlay), sb = Sangguniang Bayan sessions (/overlay?theme=sb).
+const STYLES = ['usual', 'sb'];
+const STATE_FILES = {
+  usual: path.join(DATA_DIR, 'state.json'),
+  sb: path.join(DATA_DIR, 'state-sb.json'),
+};
 const LOGO_FILE = path.join(DATA_DIR, 'logo');
 const PORT = Number(process.env.PORT) || 3000;
 
@@ -37,11 +43,6 @@ const DEFAULT_STATE = {
     ticker: '#0c2d6b',
     clock: '#1d5fc4',
   },
-  // Other versions of the lower third, picked with ?theme=<name> on the overlay URL.
-  // sb = Sangguniang Bayan sessions: red and blue swapped.
-  themes: {
-    sb: { colors: { bar: '#0c2d6b', ticker: '#d7141a', clock: '#ef4146' } },
-  },
   logoVersion: 0,
   // Top-right badge that spins between these logos every `seconds`.
   cornerLogos: {
@@ -68,30 +69,71 @@ const DEFAULT_STATE = {
   speakerAutoHide: 0, // seconds; 0 = stay until hidden
 };
 
-let state = structuredClone(DEFAULT_STATE);
+// Settings both styles share: the officials list, logo and corner badge. They live in state.json.
+const SHARED_KEYS = ['speakerRoster', 'logoVersion', 'cornerLogos', 'speakerAutoHide'];
+// What the SB style starts from on a fresh install: red and blue swapped.
+const SB_DEFAULTS = {
+  liveLabel: 'LIVE',
+  title: 'SANGGUNIANG BAYAN SESSION',
+  colors: { bar: '#0c2d6b', ticker: '#d7141a', clock: '#ef4146' },
+};
 
-async function loadState() {
-  try {
-    const saved = JSON.parse(await fs.readFile(STATE_FILE, 'utf8'));
-    state = deepMerge(structuredClone(DEFAULT_STATE), saved);
-    delete state.committees; // older versions kept committees as a separate list
-    // Older saved rosters lack (vice-)chairmanships: fill them in from the defaults by name.
-    for (const p of state.speakerRoster || []) {
-      const def = DEFAULT_STATE.speakerRoster.find((d) => d.name === p.name);
-      if (!Array.isArray(p.committees)) p.committees = def?.committees ?? [];
-      if (!Array.isArray(p.viceCommittees)) p.viceCommittees = def?.viceCommittees ?? [];
-    }
-  } catch {
-    state = structuredClone(DEFAULT_STATE);
-  }
+const isShared = (k) => SHARED_KEYS.includes(k);
+const ownPart = (obj) => Object.fromEntries(Object.entries(obj).filter(([k]) => !isShared(k)));
+const pick = (obj, keys) => Object.fromEntries(keys.filter((k) => k in obj).map((k) => [k, obj[k]]));
+const toStyle = (v) => (STYLES.includes(v) ? v : 'usual');
+
+function defaultsFor(style) {
+  const d = structuredClone(DEFAULT_STATE);
+  return style === 'sb' ? deepMerge(d, structuredClone(SB_DEFAULTS)) : d;
 }
 
-let saveTimer;
-function saveState() {
-  clearTimeout(saveTimer);
-  saveTimer = setTimeout(async () => {
+const states = { usual: defaultsFor('usual'), sb: defaultsFor('sb') };
+
+// The full settings one style's overlay sees: its own settings plus the shared ones.
+function view(style) {
+  return style === 'usual' ? states.usual : { ...states.sb, ...pick(states.usual, SHARED_KEYS) };
+}
+
+async function readJson(file) {
+  try { return JSON.parse(await fs.readFile(file, 'utf8')); } catch { return null; }
+}
+
+async function loadState() {
+  const saved = await readJson(STATE_FILES.usual);
+  const usual = deepMerge(defaultsFor('usual'), saved || {});
+  delete usual.committees; // older versions kept committees as a separate list
+  const oldTheme = usual.themes?.sb; // older versions kept the SB look inside state.json
+  delete usual.themes;
+  // Older saved rosters lack (vice-)chairmanships: fill them in from the defaults by name.
+  for (const p of usual.speakerRoster || []) {
+    const def = DEFAULT_STATE.speakerRoster.find((d) => d.name === p.name);
+    if (!Array.isArray(p.committees)) p.committees = def?.committees ?? [];
+    if (!Array.isArray(p.viceCommittees)) p.viceCommittees = def?.viceCommittees ?? [];
+  }
+  states.usual = usual;
+
+  const savedSb = await readJson(STATE_FILES.sb);
+  if (savedSb) {
+    states.sb = deepMerge(defaultsFor('sb'), ownPart(savedSb));
+  } else {
+    // First run with separate styles: start SB as a copy of what's set now, with the SB colors.
+    states.sb = deepMerge(structuredClone(ownPart(usual)), {
+      colors: oldTheme?.colors || SB_DEFAULTS.colors,
+      speakerLive: { visible: false, name: '', title: '' },
+    });
+    saveState('sb');
+  }
+  if (oldTheme) saveState('usual'); // drop the old `themes` entry from state.json
+}
+
+const saveTimers = {};
+function saveState(style) {
+  clearTimeout(saveTimers[style]);
+  saveTimers[style] = setTimeout(async () => {
     await fs.mkdir(DATA_DIR, { recursive: true });
-    await fs.writeFile(STATE_FILE, JSON.stringify(state, null, 2));
+    const data = style === 'usual' ? states.usual : ownPart(states.sb);
+    await fs.writeFile(STATE_FILES[style], JSON.stringify(data, null, 2));
   }, 200);
 }
 
@@ -106,23 +148,39 @@ function deepMerge(target, src) {
   return target;
 }
 
-function applyPatch(patch) {
-  const allowed = Object.fromEntries(
-    Object.entries(patch ?? {}).filter(([k]) => k in DEFAULT_STATE),
-  );
-  deepMerge(state, allowed);
-  if (allowed.speakerLive) scheduleSpeakerAutoHide();
-  saveState();
-  broadcast({ type: 'state', state });
+// Apply a change from the control panel to one style. Shared settings change for both.
+function applyPatch(style, patch) {
+  style = toStyle(style);
+  const allowed = Object.entries(patch ?? {}).filter(([k]) => k in DEFAULT_STATE);
+  const shared = Object.fromEntries(allowed.filter(([k]) => isShared(k)));
+  const own = Object.fromEntries(allowed.filter(([k]) => !isShared(k)));
+  const sharedChanged = Object.keys(shared).length > 0;
+
+  if (sharedChanged) deepMerge(states.usual, shared);
+  deepMerge(states[style], own);
+  if (own.speakerLive) scheduleSpeakerAutoHide(style);
+
+  if (sharedChanged) saveState('usual');
+  saveState(style);
+  for (const st of sharedChanged ? STYLES : [style]) broadcastState(st);
+}
+
+function resetStyle(style) {
+  // Keep the shared settings (officials list, logo, corner badge); reset this style's own ones.
+  const keep = pick(states.usual, SHARED_KEYS);
+  states[style] = defaultsFor(style);
+  if (style === 'usual') Object.assign(states.usual, keep);
+  saveState(style);
+  broadcastState(style);
 }
 
 // Auto-hide runs on the server so it still works if the control panel is closed.
-let speakerTimer;
-function scheduleSpeakerAutoHide() {
-  clearTimeout(speakerTimer);
-  const secs = Number(state.speakerAutoHide) || 0;
-  if (state.speakerLive?.visible && secs > 0) {
-    speakerTimer = setTimeout(() => applyPatch({ speakerLive: { visible: false } }), secs * 1000);
+const speakerTimers = {};
+function scheduleSpeakerAutoHide(style) {
+  clearTimeout(speakerTimers[style]);
+  const secs = Number(states.usual.speakerAutoHide) || 0;
+  if (states[style].speakerLive?.visible && secs > 0) {
+    speakerTimers[style] = setTimeout(() => applyPatch(style, { speakerLive: { visible: false } }), secs * 1000);
   }
 }
 
@@ -192,18 +250,15 @@ const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, 'http://localhost');
     const p = url.pathname;
 
-    if (p === '/api/state' && req.method === 'GET') return sendJson(res, 200, state);
+    const style = toStyle(url.searchParams.get('style'));
+    if (p === '/api/state' && req.method === 'GET') return sendJson(res, 200, view(style));
     if (p === '/api/state' && req.method === 'POST') {
-      applyPatch(JSON.parse((await readBody(req)).toString('utf8') || '{}'));
-      return sendJson(res, 200, state);
+      applyPatch(style, JSON.parse((await readBody(req)).toString('utf8') || '{}'));
+      return sendJson(res, 200, view(style));
     }
     if (p === '/api/reset' && req.method === 'POST') {
-      const { logoVersion, speakerRoster } = state; // keep logo and edited roster
-      state = structuredClone(DEFAULT_STATE);
-      Object.assign(state, { logoVersion, speakerRoster });
-      saveState();
-      broadcast({ type: 'state', state });
-      return sendJson(res, 200, state);
+      resetStyle(style);
+      return sendJson(res, 200, view(style));
     }
     if (p === '/api/facebook/posts' && req.method === 'GET') {
       const posts = await fetchFacebookPosts(Number(url.searchParams.get('limit')) || 10);
@@ -219,7 +274,7 @@ const server = http.createServer(async (req, res) => {
       await fs.mkdir(DATA_DIR, { recursive: true });
       await fs.writeFile(LOGO_FILE, buf);
       await fs.writeFile(LOGO_FILE + '.type', type);
-      applyPatch({ logoVersion: Date.now() });
+      applyPatch('usual', { logoVersion: Date.now() });
       return sendJson(res, 200, { ok: true });
     }
     if (p === '/logo' && req.method === 'GET') {
@@ -253,17 +308,21 @@ const server = http.createServer(async (req, res) => {
 // ---------- WebSocket ----------
 const wss = new WebSocketServer({ server, path: '/ws' });
 
-function broadcast(msg) {
-  const data = JSON.stringify(msg);
+const stateMsg = (style) => JSON.stringify({ type: 'state', style, state: view(style) });
+
+function broadcastState(style) {
+  const data = stateMsg(style);
   for (const c of wss.clients) if (c.readyState === 1) c.send(data);
 }
 
-wss.on('connection', (ws) => {
-  ws.send(JSON.stringify({ type: 'state', state }));
+wss.on('connection', (ws, req) => {
+  // Clients get every style's settings; each overlay shows only its own (?style=…).
+  const connStyle = toStyle(new URL(req.url, 'http://localhost').searchParams.get('style'));
+  for (const st of STYLES) ws.send(stateMsg(st));
   ws.on('message', (raw) => {
     try {
       const msg = JSON.parse(raw);
-      if (msg.type === 'patch') applyPatch(msg.patch);
+      if (msg.type === 'patch') applyPatch(msg.style || connStyle, msg.patch);
     } catch {
       /* ignore malformed */
     }
@@ -287,6 +346,7 @@ server.listen(PORT, '0.0.0.0', () => {
     .map((i) => i.address);
   console.log(`\n  SB Overlays server running`);
   console.log(`  Overlay (OBS Browser Source, 1920x1080):  http://localhost:${PORT}/overlay`);
+  console.log(`  SB session overlay:                       http://localhost:${PORT}/overlay?theme=sb`);
   console.log(`  Control panel:                            http://localhost:${PORT}/control`);
   for (const ip of lan) console.log(`  Control from another device:              http://${ip}:${PORT}/control`);
   console.log('');

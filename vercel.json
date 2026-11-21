@@ -6,7 +6,23 @@
   "outputDirectory": "static",
   "cleanUrls": true,
   "headers": [
-    { "source": "/config.json", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] },
-    { "source": "/(overlay.js|overlay.css)", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] }
+    {
+      "source": "/(config.json|config-sb.json)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        }
+      ]
+    },
+    {
+      "source": "/(overlay.js|overlay.css)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        }
+      ]
+    }
   ]
 }

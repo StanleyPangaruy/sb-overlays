@@ -5,8 +5,36 @@
   let dirty = false;
   let ws = null;
 
-  $('overlay-url').textContent = `${location.origin}/overlay`;
-  $('control-url').textContent = `${location.origin}/control`;
+  // ---------- Style being edited: usual or sb (each has its own settings) ----------
+  const STYLES = { usual: 'Usual', sb: 'SB session' };
+  const STYLE_KEY = 'sbo-style';
+  const states = {};   // latest settings per style, from the server
+  let style = new URLSearchParams(location.search).get('style');
+  if (!(style in STYLES)) { try { style = localStorage.getItem(STYLE_KEY); } catch { style = null; } }
+  if (!(style in STYLES)) style = 'usual';
+  const overlayPath = (st) => (st === 'sb' ? '/overlay?theme=sb' : '/overlay');
+
+  function showStyle() {
+    document.body.dataset.style = style;
+    for (const b of document.querySelectorAll('[data-style-btn]')) {
+      b.classList.toggle('active', b.dataset.styleBtn === style);
+      b.setAttribute('aria-pressed', String(b.dataset.styleBtn === style));
+    }
+    $('overlay-url').textContent = `${location.origin}${overlayPath(style)}`;
+    $('control-url').textContent = `${location.origin}/control${style === 'sb' ? '?style=sb' : ''}`;
+  }
+
+  function switchStyle(next) {
+    if (next === style || !(next in STYLES)) return;
+    if (dirty && !confirm(`You have changes that aren't on air yet. Discard them and switch to ${STYLES[next]}?`)) return;
+    style = next;
+    try { localStorage.setItem(STYLE_KEY, style); } catch { /* storage unavailable */ }
+    setDirty(false);
+    showStyle();
+    if (frame.getAttribute('src')) { frame.removeAttribute('src'); syncPreview(); }
+    if (states[style]) onState(states[style]);
+  }
+  for (const b of document.querySelectorAll('[data-style-btn]')) b.onclick = () => switchStyle(b.dataset.styleBtn);
 
   // ---------- Collapsible sections (remembered per browser / OBS dock) ----------
   const OPEN_KEY = 'sbo-open-sections';
@@ -28,9 +56,10 @@
   const fit = () => { frame.style.transform = `scale(${$('preview').clientWidth / 1920})`; };
   new ResizeObserver(fit).observe($('preview'));
   function syncPreview() {
-    if (previewBox.open && !frame.getAttribute('src')) frame.src = '/overlay?preview=1';
+    if (previewBox.open && !frame.getAttribute('src')) frame.src = `${overlayPath(style)}${style === 'sb' ? '&' : '?'}preview=1`;
     if (!previewBox.open && frame.getAttribute('src')) frame.removeAttribute('src');
   }
+  showStyle();
   syncPreview();
 
   // ---------- Path helpers ----------
@@ -106,8 +135,8 @@
   $('btn-hide').onclick = () => send({ visible: false });
 
   $('btn-reset').onclick = async () => {
-    if (!confirm('Reset every setting to the defaults? The logo is kept.')) return;
-    await fetch('/api/reset', { method: 'POST' });
+    if (!confirm(`Reset the ${STYLES[style]} settings to the defaults? The speaker list and logo are kept.`)) return;
+    await fetch(`/api/reset?style=${style}`, { method: 'POST' });
     setDirty(false);
   };
 
@@ -122,8 +151,8 @@
 
   // ---------- Live connection ----------
   function send(patch) {
-    if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'patch', patch }));
-    else fetch('/api/state', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(patch) });
+    if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'patch', style, patch }));
+    else fetch(`/api/state?style=${style}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(patch) });
   }
 
   function onState(s) {
@@ -142,7 +171,16 @@
   function connect() {
     ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`);
     ws.onopen = () => { $('conn').textContent = 'connected'; $('conn').className = 'conn ok'; };
-    ws.onmessage = (e) => { const m = JSON.parse(e.data); if (m.type === 'state') onState(m.state); };
+    ws.onmessage = (e) => {
+      const m = JSON.parse(e.data);
+      if (m.type !== 'state') return;
+      const st = m.style || 'usual';
+      states[st] = m.state;
+      if (st === style) onState(m.state);
+      // Show at a glance whether the other style is on air too.
+      const btn = document.querySelector(`[data-style-btn="${st}"]`);
+      if (btn) btn.classList.toggle('on', Boolean(m.state.visible));
+    };
     ws.onclose = () => {
       $('conn').textContent = 'disconnected — retrying';
       $('conn').className = 'conn bad';

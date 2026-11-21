@@ -1,0 +1,10 @@
+{
+  "$comment": "SB session style (?theme=sb). Anything left out here is taken from config.json.",
+  "liveLabel": "LIVE",
+  "title": "SANGGUNIANG BAYAN SESSION",
+  "colors": {
+    "bar": "#0c2d6b",
+    "ticker": "#d7141a",
+    "clock": "#ef4146"
+  }
+}
