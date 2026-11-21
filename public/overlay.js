@@ -1,8 +1,6 @@
 (() => {
   const $ = (id) => document.getElementById(id);
-  // Accept links glued together by hand, e.g. "?theme=sb&/?only=lowerthird" or
-  // "?only=lowerthird?theme=sb": every extra "?" or "/?" counts as "&".
-  const params = new URLSearchParams(location.search.replace(/^\?/, '').replace(/\/?\?/g, '&'));
+  const params = new URLSearchParams(location.search);
   if (params.has('preview')) document.body.classList.add('preview-bg');
   // ?only=lowerthird | corner | speaker: one part per OBS source (see README).
   if (params.has('only')) document.body.dataset.only = params.get('only');
