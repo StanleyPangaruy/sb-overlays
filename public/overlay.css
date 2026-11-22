@@ -137,7 +137,7 @@ body.preview-bg {
 .social {
   position: absolute;
   right: var(--edge);
-  bottom: calc(var(--ticker-h) + var(--bar-h) + 4px);
+  bottom: calc(var(--ticker-h) + var(--bar-h)); /* flush on the title bar */
   height: var(--social-h);
   background: #fff;
   display: flex;
